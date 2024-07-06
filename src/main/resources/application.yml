@@ -1,0 +1,43 @@
+## YAML Template.
+---
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: INFO
+    org.springframework.cloud.gateway: TRACE
+
+spring:
+  application:
+    name: Gateway
+
+  cloud:
+    gateway:
+      routes:
+        - id: service_a_get_all
+          uri: http://localhost:81
+          predicates:
+            - Path=/api/serviceA/a1
+            - Method=GET
+          filters:
+            - RewritePath=/api/serviceA/a1, /a1
+        - id: service_a_post_save
+          uri: http://localhost:81
+          predicates:
+            - Path=/api/serviceA/a1
+            - Method=POST
+          filters:
+            - RewritePath=/api/serviceA/a1, /a1
+        - id: service-a-swagger-ui-1
+          uri: http://localhost:81
+          predicates:
+            - Path=/openapi/serviceA/**
+          filters:
+            - RewritePath=/openapi/serviceA/(?<path>.*), /$\{path}
+        - id: service-a-swagger-ui-2
+          uri: http://localhost:81
+          predicates:
+            - Path=/v3/api-docs/**
