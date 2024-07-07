@@ -1,0 +1,26 @@
+## YAML Template.
+---
+version: "1.0"
+services:
+    service-a:
+        container_name: "mstr-servicea"
+        image: "service-a:0.0.1"
+        ports:
+          - "81:8080"
+        restart: unless-stopped
+        environment: 
+          - SPRING_PROFILES_ACTIVE=docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://service-a:8080/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
+    app:
+        container_name: "mstr-gateway"
+        depends_on:
+            service-a:
+                condition: service_healthy
+        ports:
+          - "8080:8080"
+        image: "gateway:0.0.1"
+        environment: 
+          - SPRING_PROFILES_ACTIVE=docker
