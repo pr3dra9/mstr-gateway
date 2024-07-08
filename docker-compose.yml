@@ -1,9 +1,29 @@
 ## YAML Template.
 ---
-version: "1.0"
 services:
+    serviceadb:
+        container_name: "mstr-serviceadb"
+        image: "mariadb"
+        ports:
+            - "3306:3306"
+        restart: unless-stopped
+        environment: 
+            - MARIADB_USER=user
+            - MARIADB_PASSWORD=user
+            - MARIADB_ROOT_PASSWORD=root
+        command: --init-file /data/application/init.sql
+        volumes:
+            - ./init.sql:/data/application/init.sql
+            - db-data:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            timeout: 10s
+            retries: 10
     service-a:
         container_name: "mstr-servicea"
+        depends_on:
+            serviceadb:
+                condition: service_healthy
         image: "service-a:0.0.1"
         ports:
           - "81:8080"
@@ -24,3 +44,5 @@ services:
         image: "gateway:0.0.1"
         environment: 
           - SPRING_PROFILES_ACTIVE=docker
+volumes:
+    db-data:
