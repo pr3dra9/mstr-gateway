@@ -3,6 +3,9 @@
 services:
     serviceadb:
         container_name: "mstr-serviceadb"
+        depends_on:
+            config: 
+                condition: service_healthy
         image: "mariadb"
         ports:
             - "3306:3306"
@@ -24,6 +27,8 @@ services:
         depends_on:
             serviceadb:
                 condition: service_healthy
+            config: 
+                condition: service_healthy
         image: "service-a:0.0.1"
         ports:
           - "81:8080"
@@ -34,15 +39,28 @@ services:
           test: ["CMD-SHELL", "curl -f http://service-a:8080/actuator/health || exit 1"]
           timeout: 10s
           retries: 10
-    app:
+    gateway:
         container_name: "mstr-gateway"
         depends_on:
             service-a:
+                condition: service_healthy
+            config: 
                 condition: service_healthy
         ports:
           - "8080:8080"
         image: "gateway:0.0.1"
         environment: 
           - SPRING_PROFILES_ACTIVE=docker
+    config:
+        container_name: "mstr-config"
+        ports:
+          - "8888:8888"
+        image: "config:0.0.1"
+        environment: 
+          - SPRING_PROFILES_ACTIVE=native,docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://config:8888/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
 volumes:
     db-data:
