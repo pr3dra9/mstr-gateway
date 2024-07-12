@@ -1,11 +1,36 @@
 ## YAML Template.
 ---
 services:
-    serviceadb:
-        container_name: "mstr-serviceadb"
+    config:
+        container_name: "mstr-config"
+        ports:
+          - "8888:8080"
+        image: "config:0.0.1"
+        environment: 
+          - SPRING_PROFILES_ACTIVE=native,docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://config:8080/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
+    discovery:
+        container_name: "mstr-discovery"
         depends_on:
             config: 
                 condition: service_healthy
+        ports:
+          - "8761:8080"
+        image: "discovery:0.0.1"
+        environment: 
+          - SPRING_PROFILES_ACTIVE=docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://discovery:8080/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
+    serviceadb:
+        container_name: "mstr-serviceadb"
+        ##depends_on:
+            ##config: 
+                ##condition: service_healthy
         image: "mariadb"
         ports:
             - "3306:3306"
@@ -51,16 +76,5 @@ services:
         image: "gateway:0.0.1"
         environment: 
           - SPRING_PROFILES_ACTIVE=docker
-    config:
-        container_name: "mstr-config"
-        ports:
-          - "8888:8888"
-        image: "config:0.0.1"
-        environment: 
-          - SPRING_PROFILES_ACTIVE=native,docker
-        healthcheck:
-          test: ["CMD-SHELL", "curl -f http://config:8888/actuator/health || exit 1"]
-          timeout: 10s
-          retries: 10
 volumes:
     db-data:
