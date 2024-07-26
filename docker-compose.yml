@@ -48,7 +48,7 @@ services:
             timeout: 10s
             retries: 10
     service-a:
-        container_name: "mstr-servicea"
+        #container_name: "mstr-servicea"
         depends_on:
             serviceadb:
                 condition: service_healthy
@@ -67,8 +67,8 @@ services:
     gateway:
         container_name: "mstr-gateway"
         depends_on:
-            service-a:
-                condition: service_healthy
+            #service-a:
+                #condition: service_healthy
             config: 
                 condition: service_healthy
         ports:
@@ -76,5 +76,59 @@ services:
         image: "gateway:0.0.1"
         environment: 
           - SPRING_PROFILES_ACTIVE=docker
+    service-b:
+        container_name: "mstr-service-b"
+        depends_on:
+            config: 
+                condition: service_healthy
+        image: "service-b:0.0.1"
+        ports:
+          - "82:8080"
+        restart: unless-stopped
+        environment: 
+          - SPRING_PROFILES_ACTIVE=docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://service-b:8080/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
+    zookeeper:
+      container_name: "mstr-zookeeper"
+      image: "wurstmeister/zookeeper:latest"
+      ports:
+        - "2181:2181"
+
+    kafka:
+      container_name: "mstr-kafka"
+      image: "wurstmeister/kafka:latest"
+      ports:
+        - 9092:9092
+        - 9093:9093
+      environment:
+        KAFKA_ADVERTISED_HOST_NAME: kafka
+        KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092,OUTSIDE://localhost:9093
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+        KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
+        KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        KAFKA_CREATE_TOPICS: "a2CreateRequest:1:1,a2CreateResponse:1:1,a2UpdateRequest:1:1,a2UpdateResponse:1:1,a2DeleteRequest:1:1,a2DeleteResponse:1:1"
+
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+      depends_on:
+        - zookeeper
+    akhq:
+      container_name: "mstr-akhq"
+      image: "tchiotludo/akhq:latest"
+      ports:
+        - 8081:8080
+      environment:
+        AKHQ_CONFIGURATION: |
+          akhq:
+            connections:
+              kafka-cluster:
+                properties:
+                  bootstrap.servers: 'kafka:9092'
+      depends_on:
+        - kafka
 volumes:
     db-data:
