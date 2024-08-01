@@ -33,7 +33,7 @@ services:
                 ##condition: service_healthy
         image: "mariadb"
         ports:
-            - "3306:3306"
+            - "3307:3306"
         restart: unless-stopped
         environment: 
             - MARIADB_USER=user
@@ -129,5 +129,40 @@ services:
                   bootstrap.servers: 'kafka:9092'
       depends_on:
         - kafka
+    auth:
+        container_name: "mstr-auth"
+        depends_on:
+            auth-db:
+                condition: service_healthy
+            config: 
+                condition: service_healthy
+        ports:
+          - "9000:8080"
+        image: "auth:0.0.1"
+        environment: 
+          - SPRING_PROFILES_ACTIVE=docker
+        healthcheck:
+          test: ["CMD-SHELL", "curl -f http://config:8080/actuator/health || exit 1"]
+          timeout: 10s
+          retries: 10
+    auth-db:
+        container_name: "mstr-auth-db"
+        image: "mariadb"
+        ports:
+            - "3306:3306"
+        restart: unless-stopped
+        environment: 
+            - MARIADB_USER=user
+            - MARIADB_PASSWORD=user
+            - MARIADB_ROOT_PASSWORD=root
+        command: --init-file /data/application/init.sql
+        volumes:
+            - ./init-auth-db.sql:/data/application/init.sql
+            - db-data2:/var/lib/mysql
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            timeout: 10s
+            retries: 10
 volumes:
     db-data:
+    db-data2:
