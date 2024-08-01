@@ -72,7 +72,7 @@ services:
             config: 
                 condition: service_healthy
         ports:
-          - "8080:8080"
+          - "8443:8443"
         image: "gateway:0.0.1"
         environment: 
           - SPRING_PROFILES_ACTIVE=docker
@@ -96,7 +96,6 @@ services:
       image: "wurstmeister/zookeeper:latest"
       ports:
         - "2181:2181"
-
     kafka:
       container_name: "mstr-kafka"
       image: "wurstmeister/kafka:latest"
